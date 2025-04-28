@@ -1,22 +1,24 @@
 import logging
 from telethon import TelegramClient, events
 import sqlite3
+import asyncio
 
 # Включаем логирование
 logging.basicConfig(level=logging.INFO)
 
 # Ваши данные
-api_id = '22011892'  # Замените на ваш API ID
-api_hash = '1d2c54a27a6590697dd0668c8e4e6bcd'  # Замените на ваш API Hash
+api_id = 22011892  # Без кавычек
+api_hash = '1d2c54a27a6590697dd0668c8e4e6bcd'
+bot_token = '7879222970:AAExi2jRBLlCl5TgcDWXmZK_OpBmRs0Dllw'
 
-# Создаем клиент с сессией
-client = TelegramClient('my_session', api_id, api_hash)
+# Создаем клиента через токен
+client = TelegramClient('my_session', api_id, api_hash).start(bot_token=bot_token)
 
 # Канал для подписки
-CHANNEL_ID = '@your_channel'  # Замените на ваш канал
+CHANNEL_ID = '@your_channel'  # Замените на ваш реальный канал
 
 # Список разрешенных администраторов по username
-admin_usernames = ['fiftyzz']  # Убрали 'fiftyzoro'
+admin_usernames = ['fiftyzz']
 
 # Создание базы данных для хранения подписчиков
 conn = sqlite3.connect('subscribers.db', check_same_thread=False)
@@ -34,9 +36,8 @@ async def start(event):
             cursor.execute('INSERT INTO subscribers (user_id) VALUES (?)', (user_id,))
             conn.commit()
 
-        # Если пользователь администратор, показываем админскую кнопку
+        # Если пользователь администратор
         if event.sender.username in admin_usernames:
-            # Отправляем сообщение с кнопками для администратора
             await event.respond('Привет, администратор! Вот кнопка для тебя.')
         else:
             await event.respond('Привет! Ты не администратор. Приятного общения!')
@@ -49,14 +50,13 @@ async def start(event):
 async def subscribe(event):
     try:
         user_id = event.sender_id
-        # Проверка подписки
         try:
-            # Проверяем, подписан ли пользователь на канал
+            # Проверяем подписку
             participant = await client.get_participant(CHANNEL_ID, user_id)
             if participant:
                 await event.respond('Вы уже подписаны на канал!')
         except:
-            await event.respond(f'Для подписки перейдите по [ссылке](https://t.me/+C3aA9_mFLV00NTIy) и нажмите "Присоединиться".', parse_mode='markdown')
+            await event.respond('Для подписки перейдите по [ссылке](https://t.me/+C3aA9_mFLV00NTIy) и нажмите "Присоединиться".', parse_mode='markdown')
 
     except Exception as e:
         logging.error(f"Ошибка при обработке подписки: {e}")
@@ -73,7 +73,7 @@ async def admin_button(event):
     except Exception as e:
         logging.error(f"Ошибка при обработке админской кнопки: {e}")
 
-# Функция для рассылки сообщения всем подписчикам
+# Рассылка сообщения всем подписчикам
 async def send_message_to_all_subscribers(message_text):
     try:
         for subscriber in cursor.execute('SELECT user_id FROM subscribers'):
@@ -88,12 +88,9 @@ async def send_message_to_all_subscribers(message_text):
 async def main():
     try:
         logging.info("Бот запущен...")
-        await client.start()
         await client.run_until_disconnected()
-
     except Exception as e:
         logging.error(f"Ошибка при запуске бота: {e}")
 
-# Запуск асинхронной функции
-import asyncio
+# Стартуем
 asyncio.run(main())
